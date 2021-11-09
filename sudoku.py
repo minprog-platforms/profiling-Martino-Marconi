@@ -1,12 +1,12 @@
 from __future__ import annotations
 from typing import Iterable, Sequence
 
-
 class Sudoku:
     """A mutable sudoku puzzle."""
 
     def __init__(self, puzzle: Iterable[Iterable]):
         self._grid: list[str] = []
+        self._possible_values: list[list] = []
 
         for puzzle_row in puzzle:
             row = ""
@@ -15,6 +15,13 @@ class Sudoku:
                 row += str(element)
 
             self._grid.append(row)
+
+        for y in range(9):
+            for x in range(9):
+                if self.value_at(x,y) == 0:
+                    value = x,y
+                    self._possible_values.append(value)
+        self._possible_values = list(reversed(self._possible_values))
 
     def place(self, value: int, x: int, y: int) -> None:
         """Place value at x,y."""
@@ -29,27 +36,30 @@ class Sudoku:
 
         self._grid[y] = new_row
 
+        value = [x,y]
+
+        self._possible_values.pop()
+
     def unplace(self, x: int, y: int) -> None:
         """Remove (unplace) a number at x,y."""
         row = self._grid[y]
         new_row = row[:x] + "0" + row[x + 1:]
         self._grid[y] = new_row
 
+        value = [x,y]
+
+        self._possible_values.append(value)
+
     def value_at(self, x: int, y: int) -> int:
         """Returns the value at x,y."""
-        value = -1
 
-        for i in range(9):
-            for j in range(9):
-                if i == x and j == y:
-                    row = self._grid[y]
-                    value = int(row[x])
+        value = int(self._grid[y][x])
 
         return value
 
     def options_at(self, x: int, y: int) -> Sequence[int]:
         """Returns all possible values (options) at x,y."""
-        options = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        options = (1, 2, 3, 4, 5, 6, 7, 8, 9)
 
         # Remove all values from the row
         for value in self.row_values(y):
@@ -76,14 +86,12 @@ class Sudoku:
         Returns the next index (x,y) that is empty (value 0).
         If there is no empty spot, returns (-1,-1)
         """
-        next_x, next_y = -1, -1
 
-        for y in range(9):
-            for x in range(9):
-                if self.value_at(x, y) == 0 and next_x == -1 and next_y == -1:
-                    next_x, next_y = x, y
-
-        return next_x, next_y
+        if self._possible_values:
+            return self._possible_values[-1]
+        
+        else:
+            return (-1,-1)
 
     def row_values(self, i: int) -> Sequence[int]:
         """Returns all values at i-th row."""
@@ -116,6 +124,8 @@ class Sudoku:
         x_start = (i % 3) * 3
         y_start = (i // 3) * 3
 
+
+
         for x in range(x_start, x_start + 3):
             for y in range(y_start, y_start + 3):
                 values.append(self.value_at(x, y))
@@ -129,18 +139,25 @@ class Sudoku:
         """
         values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
+        if self._possible_values:
+            return False
+
+
         result = True
 
         for i in range(9):
             for value in values:
                 if value not in self.column_values(i):
-                    result = False
+
+                    return False
 
                 if value not in self.row_values(i):
-                    result = False
+
+                    return False
 
                 if value not in self.block_values(i):
-                    result = False
+
+                    return False
 
         return result
 
